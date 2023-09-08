@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="10dp"
+    android:layout_margin="5dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout
+        android:id="@+id/background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="10dp"
+        android:orientation="vertical">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:text="Title"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:ellipsize="end"
+            android:maxLines="1"/>
+        <ImageView
+            android:id="@+id/img_pin"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/pin"
+            android:layout_alignParentEnd="true"
+            android:visibility="gone"
+            app:tint="@color/grey" />
+    </RelativeLayout>
+    <TextView
+        android:id="@+id/tv_note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="this is my note i am just testing it out this is my note i am just testing it out "
+        android:textSize="15sp"
+        android:layout_marginTop="5dp"
+        android:background="@android:color/transparent"
+        android:ellipsize="end"
+        android:maxLines="6"/>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

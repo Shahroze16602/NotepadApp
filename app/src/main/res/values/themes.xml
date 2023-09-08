@@ -1,0 +1,21 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorSecondary">@color/green</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
+        <item name="android:textCursorDrawable">@drawable/custom_cursor</item>
+    </style>
+
+    <style name="Theme.MyApplication" parent="Base.Theme.MyApplication">
+        <item name="android:statusBarColor">#FFFBFE</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:textColorHighlight">#6501BA62</item>
+    </style>
+    <style name="DialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
+    </style>
+    <color name="dialog_bg_color">#FFFBFE</color>
+</resources>

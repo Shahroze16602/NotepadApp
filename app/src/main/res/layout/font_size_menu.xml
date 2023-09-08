@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp">
+    <TextView
+        android:id="@+id/label_font_size"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/font_size_seek_bar"
+        android:text="Select font size:"
+        android:textSize="20sp"/>
+    <TextView
+        android:id="@+id/tv_font_size"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/font_size_seek_bar"
+        android:layout_alignBaseline="@+id/label_font_size"
+        android:text="16"
+        android:textAlignment="textEnd"
+        android:textSize="15sp"/>
+    <SeekBar
+        android:id="@+id/font_size_seek_bar"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_below="@+id/label_font_size"
+        android:layout_centerHorizontal="true"
+        android:max="32"
+        android:min="12"
+        android:progress="16"
+        android:padding="10dp"/>
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_confirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/font_size_seek_bar"
+        android:layout_alignEnd="@+id/font_size_seek_bar"
+        android:text="Confirm"
+        android:textColor="@color/green"
+        android:background="@android:color/transparent"/>
+
+</RelativeLayout>
