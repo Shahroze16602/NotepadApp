@@ -1,16 +1,18 @@
 package com.example.myapplication;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -34,6 +36,7 @@ import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,15 +44,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.adapters.CheckListAdapter;
+import com.example.myapplication.adapters.ImageAdapter;
 import com.example.myapplication.databinding.ActivityAddNoteBinding;
 import com.example.myapplication.databinding.FontSizeMenuBinding;
 import com.example.myapplication.models.CheckListModel;
 import com.example.myapplication.models.ForegroundColorSpanModel;
-import com.example.myapplication.models.ImageSpanModel;
+import com.example.myapplication.models.ImageModel;
 import com.example.myapplication.models.SizeSpanModel;
 import com.example.myapplication.models.StyleSpanModel;
 import com.google.gson.Gson;
@@ -58,9 +63,10 @@ import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import top.defaults.colorpicker.ColorPickerPopup;
@@ -72,14 +78,15 @@ public class AddNoteActivity extends AppCompatActivity {
     int size;
     Gson gson = new Gson();
     CheckListAdapter checkListAdapter;
+    ImageAdapter imageAdapter;
     TextWatcher textWatcher;
     List<StyleSpanModel> styles = new ArrayList<>();
     List<SizeSpanModel> fontSizes = new ArrayList<>();
     List<ForegroundColorSpanModel> foregroundColors = new ArrayList<>();
-    List<ImageSpanModel> imageSpanModels = new ArrayList<>();
     ArrayList<CheckListModel> arrayList = new ArrayList<>();
+    ArrayList<ImageModel> imageList = new ArrayList<>();
     Uri imageUri;
-
+    Bitmap bitmap;
     @SuppressLint({"RestrictedApi", "WrongThread", "NotifyDataSetChanged"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +102,7 @@ public class AddNoteActivity extends AppCompatActivity {
         sizes = getIntent().getStringExtra("Sizes");
         isPinned = getIntent().getIntExtra("Is_pinned", 1);
         binding.rvCheckList.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvImageList.setLayoutManager(new GridLayoutManager(this, 2));
         setSupportActionBar(binding.toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Note");
@@ -141,9 +149,10 @@ public class AddNoteActivity extends AppCompatActivity {
                 }.getType());
                 checkListAdapter = new CheckListAdapter(this, arrayList, this);
                 binding.rvCheckList.setAdapter(checkListAdapter);
-                checkListAdapter.notifyItemRangeInserted(0, arrayList.size() - 1);
+                checkListAdapter.notifyItemRangeInserted(0, arrayList.size());
                 binding.edtNote.setText("");
                 binding.edtNote.setVisibility(View.GONE);
+                binding.btnAddBullets.setVisibility(View.GONE);
                 binding.rvCheckList.setVisibility(View.VISIBLE);
             } catch (Exception e) {
                 binding.edtNote.setText(note);
@@ -155,8 +164,6 @@ public class AddNoteActivity extends AppCompatActivity {
                 List<ForegroundColorSpanModel> foregroundColorSpans = gson.fromJson(formatting_color,
                         new TypeToken<List<ForegroundColorSpanModel>>() {
                         }.getType());
-                List<ImageSpanModel> imageSpans = gson.fromJson(images, new TypeToken<List<ImageSpanModel>>() {
-                }.getType());
                 List<SizeSpanModel> sizeSpans = gson.fromJson(sizes, new TypeToken<List<SizeSpanModel>>() {
                 }.getType());
 //          Setting Style
@@ -180,96 +187,31 @@ public class AddNoteActivity extends AppCompatActivity {
                     ForegroundColorSpan foregroundColorSpan = new ForegroundColorSpan(span.getColor());
                     text.setSpan(foregroundColorSpan, spanStart, spanEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
-//          Setting Images
-                for (ImageSpanModel span : imageSpans) {
-                    try {
-                        InputStream inputStream = getContentResolver().openInputStream(Uri.parse(span.getImageDrawable()));
-                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                        if (inputStream != null) {
-                            inputStream.close();
-                        }
-                        if (bitmap != null) {
-                            int originalWidth = bitmap.getWidth();
-                            int originalHeight = bitmap.getHeight();
-                            Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, originalWidth, originalHeight, false);
-                            Drawable drawable = new BitmapDrawable(getResources(), resizedBitmap);
-                            drawable.setBounds(0, 0, originalWidth, originalHeight);
-                            ImageSpan imageSpan = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
-                            text.setSpan(imageSpan, span.getStart(), span.getEnd(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
                 binding.edtNote.setText(text);
             }
             binding.edtTitle.setText(title);
+            imageList = gson.fromJson(images, new TypeToken<List<ImageModel>>(){}.getType());
+            if (!imageList.isEmpty()) {
+                imageAdapter = new ImageAdapter(this, imageList, (adapterView, view, position, l) -> {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(AddNoteActivity.this).setTitle("Delete Image?")
+                            .setMessage("Are you sure you want to delete this image?")
+                            .setIcon(R.drawable.baseline_delete_24)
+                            .setPositiveButton("Yes", (dialogInterface, i) -> {
+                                imageList.remove(position);
+                                imageAdapter.notifyItemRemoved(position);
+                                if (imageList.isEmpty()) {
+                                    binding.rvImageList.setVisibility(View.GONE);
+                                }
+                            }).setNegativeButton("No", (dialogInterface, i) -> {
+                            });
+                    builder.show();
+                    return true;
+                });
+                binding.rvImageList.setAdapter(imageAdapter);
+                binding.rvImageList.setVisibility(View.VISIBLE);
+            }
         }
-        binding.btnAdd.setOnClickListener(view -> {
-            StyleSpan[] styleSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length() - 1, StyleSpan.class);
-            AbsoluteSizeSpan[] absoluteSizeSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length(), AbsoluteSizeSpan.class);
-            ForegroundColorSpan[] foregroundColorSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length() - 1,
-                    ForegroundColorSpan.class);
-            ImageSpan[] imageSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length() - 1, ImageSpan.class);
-            for (StyleSpan styleSpan : styleSpans) {
-                int start = binding.edtNote.getText().getSpanStart(styleSpan);
-                int end = binding.edtNote.getText().getSpanEnd(styleSpan);
-                int style = styleSpan.getStyle();
-                styles.add(new StyleSpanModel(style, start, end));
-            }
-            for (AbsoluteSizeSpan absoluteSizeSpan : absoluteSizeSpans) {
-                int start = binding.edtNote.getText().getSpanStart(absoluteSizeSpan);
-                int end = binding.edtNote.getText().getSpanEnd(absoluteSizeSpan);
-                int fontSize = absoluteSizeSpan.getSize();
-                fontSizes.add(new SizeSpanModel(fontSize, start, end));
-            }
-            for (ForegroundColorSpan colorSpan : foregroundColorSpans) {
-                int start = binding.edtNote.getText().getSpanStart(colorSpan);
-                int end = binding.edtNote.getText().getSpanEnd(colorSpan);
-                int color = colorSpan.getForegroundColor();
-                foregroundColors.add(new ForegroundColorSpanModel(color, start, end));
-            }
-            for (ImageSpan imageSpan : imageSpans) {
-                int start = binding.edtNote.getText().getSpanStart(imageSpan);
-                int end = binding.edtNote.getText().getSpanEnd(imageSpan);
-                String imageName;
-                Bitmap imageBitmap;
-                try {
-                    BitmapDrawable imageDrawable = (BitmapDrawable) imageSpan.getDrawable();
-                    imageBitmap = imageDrawable.getBitmap();
-                    imageName = binding.edtTitle.getText().toString() + "_" + System.currentTimeMillis() + ".png";
-                } catch (Exception e) {
-                    Log.e("TAG", "onCreate: " + e.getMessage());
-                    continue;
-                }
-                File imageFile = new File(getFilesDir(), imageName);
-                try {
-                    FileOutputStream outputStream = new FileOutputStream(imageFile);
-                    imageBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
-                    outputStream.close();
-                    Uri imageUri = FileProvider.getUriForFile(this, "com.example.myapplication.fileprovider", imageFile);
-                    imageSpanModels.add(new ImageSpanModel(imageUri.toString(), start, end));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.e("ERROR", "onCreate: " + e.getMessage());
-                }
-            }
-            Intent intent = new Intent();
-            if (title != null && note != null) intent.putExtra("Id", id);
-            intent.putExtra("Title", binding.edtTitle.getText().toString().trim());
-            if (binding.rvCheckList.getVisibility() == View.VISIBLE) {
-                intent.putExtra("Note", gson.toJson(arrayList));
-            } else {
-                intent.putExtra("Note", binding.edtNote.getText().toString());
-            }
-            intent.putExtra("Formatting_style", gson.toJson(styles));
-            intent.putExtra("Formatting_color", gson.toJson(foregroundColors));
-            intent.putExtra("Images", gson.toJson(imageSpanModels));
-            intent.putExtra("Sizes", gson.toJson(fontSizes));
-            intent.putExtra("Is_pinned", isPinned);
-            setResult(RESULT_OK, intent);
-            finish();
-        });
+        binding.btnAdd.setOnClickListener(view -> saveData());
 
 //        Setting ClickListener on Style Menu
         binding.textStyleMenu.optBold.setOnClickListener(view -> {
@@ -369,7 +311,20 @@ public class AddNoteActivity extends AppCompatActivity {
         binding.btnShare.setOnClickListener(view -> {
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
             shareIntent.setType("text/plain");
-            shareIntent.putExtra(Intent.EXTRA_TEXT, "Title: " + binding.edtTitle.getText().toString() + "\nNote: " + binding.edtNote.getText().toString());
+            if (binding.edtNote.getVisibility() == View.VISIBLE)
+                shareIntent.putExtra(Intent.EXTRA_TEXT, "Title: " + binding.edtTitle.getText().toString() + "\nNote: " + binding.edtNote.getText().toString());
+            else {
+                StringBuilder temp = new StringBuilder();
+                for (CheckListModel check :
+                        arrayList) {
+                    if (check.isChecked()) {
+                        temp.append("[X] ").append(check.getText()).append("\n");
+                    } else {
+                        temp.append("[ ] ").append(check.getText()).append("\n");
+                    }
+                }
+                shareIntent.putExtra(Intent.EXTRA_TEXT, "Title: " + binding.edtTitle.getText().toString() + "\nNote:\n" + temp.toString().trim());
+            }
             startActivity(Intent.createChooser(shareIntent, "Share via"));
         });
         binding.btnAddChecklist.setOnClickListener(view -> {
@@ -383,6 +338,7 @@ public class AddNoteActivity extends AppCompatActivity {
                 arrayList.clear();
                 checkListAdapter.notifyDataSetChanged();
                 binding.edtNote.setVisibility(View.GONE);
+                binding.btnAddBullets.setVisibility(View.GONE);
                 arrayList.add(0, new CheckListModel(false, noteText));
                 checkListAdapter.notifyItemInserted(0);
                 moveFocus(0);
@@ -435,16 +391,66 @@ public class AddNoteActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && requestCode == 1001) {
             if (data != null) {
                 imageUri = data.getData();
+                Toast.makeText(this, imageUri.toString(), Toast.LENGTH_SHORT).show();
                 if (imageUri != null) {
-                    insertImageSpan(imageUri);
+                    if (imageAdapter == null) {
+                        imageAdapter = new ImageAdapter(this, imageList, (adapterView, view, position, l) -> {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(AddNoteActivity.this).setTitle("Delete Image?")
+                                    .setMessage("Are you sure you want to delete this image?")
+                                    .setIcon(R.drawable.baseline_delete_24)
+                                    .setPositiveButton("Yes", (dialogInterface, i) -> {
+                                        imageList.remove(position);
+                                        imageAdapter.notifyItemRemoved(position);
+                                        if (imageList.isEmpty()) {
+                                            binding.rvImageList.setVisibility(View.GONE);
+                                        }
+                                    }).setNegativeButton("No", (dialogInterface, i) -> {
+                                    });
+                            builder.show();
+                            return true;
+                        });
+                        binding.rvImageList.setAdapter(imageAdapter);
+                    }
+                    imageList.add(new ImageModel(imageUri.toString()));
+                    Toast.makeText(this, String.valueOf(imageList.size()), Toast.LENGTH_SHORT).show();
+                    imageAdapter.notifyItemInserted(imageList.size()-1);
+                    binding.rvImageList.setVisibility(View.VISIBLE);
                 }
             }
         }
         if (requestCode == 1003 && resultCode == RESULT_OK) {
             assert data != null;
-            Bitmap bitmap = ((Bitmap) Objects.requireNonNull(data.getExtras()).get("data"));
+            bitmap = ((Bitmap) Objects.requireNonNull(data.getExtras()).get("data"));
             if (bitmap != null) {
-                insertImageSpan(bitmap);
+                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1234);
+                } else {
+                    imageUri = saveBitmapToFolder(this, bitmap, "IMG_" + timeStamp + ".jpg");
+                }
+                if (imageUri != null) {
+                    if (imageAdapter == null) {
+                        imageAdapter = new ImageAdapter(this, imageList, (adapterView, view, position, l) -> {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(AddNoteActivity.this).setTitle("Delete Image?")
+                                    .setMessage("Are you sure you want to delete this image?")
+                                    .setIcon(R.drawable.baseline_delete_24)
+                                    .setPositiveButton("Yes", (dialogInterface, i) -> {
+                                        imageList.remove(position);
+                                        imageAdapter.notifyItemRemoved(position);
+                                        if (imageList.isEmpty()) {
+                                            binding.rvImageList.setVisibility(View.GONE);
+                                        }
+                                    }).setNegativeButton("No", (dialogInterface, i) -> {
+                                    });
+                            builder.show();
+                            return true;
+                        });
+                        binding.rvImageList.setAdapter(imageAdapter);
+                    }
+                    imageList.add(new ImageModel(imageUri.toString()));
+                    imageAdapter.notifyItemInserted(imageList.size()-1);
+                    binding.rvImageList.setVisibility(View.VISIBLE);
+                }
             }
         }
     }
@@ -508,48 +514,6 @@ public class AddNoteActivity extends AppCompatActivity {
         }
     }
 
-    private void insertImageSpan(Uri imageUri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(imageUri);
-            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-            if (inputStream != null) {
-                inputStream.close();
-            }
-            if (bitmap != null) {
-                SpannableStringBuilder ssb = new SpannableStringBuilder(binding.edtNote.getText());
-                Drawable drawable = new BitmapDrawable(getResources(), bitmap);
-                int originalWidth = bitmap.getWidth();
-                int originalHeight = bitmap.getHeight();
-                int newHeight = Math.round((float) 640 * originalHeight / originalWidth);
-                drawable.setBounds(0, 0, 640, newHeight);
-                ImageSpan imageSpan = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
-                int selectionStart = binding.edtNote.getSelectionStart();
-                ssb.insert(selectionStart, "\ni\n");
-                ssb.setSpan(imageSpan, selectionStart + 1, selectionStart + 2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                binding.edtNote.setText(ssb);
-                binding.edtNote.setSelection(selectionStart + 3);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void insertImageSpan(Bitmap bitmap) {
-        if (bitmap != null) {
-            SpannableStringBuilder ssb = new SpannableStringBuilder(binding.edtNote.getText());
-            Drawable drawable = new BitmapDrawable(getResources(), bitmap);
-            int imageWidth = bitmap.getWidth();
-            int imageHeight = bitmap.getHeight();
-            drawable.setBounds(0, 0, imageWidth, imageHeight);
-            ImageSpan imageSpan = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
-            int selectionStart = binding.edtNote.getSelectionStart();
-            ssb.insert(selectionStart, "\ni\n");
-            ssb.setSpan(imageSpan, selectionStart + 1, selectionStart + 2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            binding.edtNote.setText(ssb);
-            binding.edtNote.setSelection(selectionStart + 3);
-        }
-    }
-
     @SuppressLint({"RestrictedApi", "QueryPermissionsNeeded"})
     private void showImageDialog() {
         Dialog dialog = new Dialog(this);
@@ -584,7 +548,12 @@ public class AddNoteActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
+        if (requestCode == 1234) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+                saveBitmapToFolder(this, bitmap, "IMG_" + timeStamp + ".jpg");
+            }
+        }
         if (requestCode == 1002) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -638,14 +607,10 @@ public class AddNoteActivity extends AppCompatActivity {
                     binding.rvCheckList.getViewTreeObserver().removeOnGlobalLayoutListener(this);
 
                     RecyclerView.ViewHolder viewHolder = binding.rvCheckList.findViewHolderForAdapterPosition(position);
-                    if (viewHolder != null && viewHolder instanceof CheckListAdapter.CheckListViewHolder) {
+                    if (viewHolder instanceof CheckListAdapter.CheckListViewHolder) {
                         CheckListAdapter.CheckListViewHolder checkListViewHolder = (CheckListAdapter.CheckListViewHolder) viewHolder;
-                        if (checkListViewHolder.binding.edtText != null) {
-                            checkListViewHolder.binding.edtText.requestFocus();
-                            checkListViewHolder.binding.edtText.setSelection(checkListViewHolder.binding.edtText.getText().length());
-                        } else {
-                            Log.d("TAG", "onGlobalLayout: EditText is null");
-                        }
+                        checkListViewHolder.binding.edtText.requestFocus();
+                        checkListViewHolder.binding.edtText.setSelection(checkListViewHolder.binding.edtText.getText().length());
                     } else {
                         Log.d("TAG", "onGlobalLayout: ViewHolder not found");
                     }
@@ -659,5 +624,65 @@ public class AddNoteActivity extends AppCompatActivity {
         binding.edtNote.requestFocus();
         binding.rvCheckList.setVisibility(View.GONE);
         binding.btnAdd.setVisibility(View.GONE);
+        binding.btnAddBullets.setVisibility(View.VISIBLE);
+    }
+    private Uri saveBitmapToFolder(Context context, Bitmap bitmap, String fileName) {
+        File folder = new File(context.getExternalFilesDir(null), "Images");
+        if (!folder.exists()) {
+            final boolean mkdirs = folder.mkdirs();
+        }
+        File file = new File(folder, fileName);
+        try {
+            FileOutputStream outputStream = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        return FileProvider.getUriForFile(context, "com.example.myapplication.fileprovider", file);
+    }
+    private void saveData() {
+        StyleSpan[] styleSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length() - 1, StyleSpan.class);
+        AbsoluteSizeSpan[] absoluteSizeSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length(), AbsoluteSizeSpan.class);
+        ForegroundColorSpan[] foregroundColorSpans = binding.edtNote.getText().getSpans(0, binding.edtNote.length() - 1,
+                ForegroundColorSpan.class);
+        for (StyleSpan styleSpan : styleSpans) {
+            int start = binding.edtNote.getText().getSpanStart(styleSpan);
+            int end = binding.edtNote.getText().getSpanEnd(styleSpan);
+            int style = styleSpan.getStyle();
+            styles.add(new StyleSpanModel(style, start, end));
+        }
+        for (AbsoluteSizeSpan absoluteSizeSpan : absoluteSizeSpans) {
+            int start = binding.edtNote.getText().getSpanStart(absoluteSizeSpan);
+            int end = binding.edtNote.getText().getSpanEnd(absoluteSizeSpan);
+            int fontSize = absoluteSizeSpan.getSize();
+            fontSizes.add(new SizeSpanModel(fontSize, start, end));
+        }
+        for (ForegroundColorSpan colorSpan : foregroundColorSpans) {
+            int start = binding.edtNote.getText().getSpanStart(colorSpan);
+            int end = binding.edtNote.getText().getSpanEnd(colorSpan);
+            int color = colorSpan.getForegroundColor();
+            foregroundColors.add(new ForegroundColorSpanModel(color, start, end));
+        }
+        Intent intent = new Intent();
+        if (title != null && note != null) intent.putExtra("Id", id);
+        intent.putExtra("Title", binding.edtTitle.getText().toString().trim());
+        if (binding.rvCheckList.getVisibility() == View.VISIBLE) {
+            intent.putExtra("Note", gson.toJson(arrayList));
+        } else {
+            intent.putExtra("Note", binding.edtNote.getText().toString());
+        }
+        intent.putExtra("Formatting_style", gson.toJson(styles));
+        intent.putExtra("Formatting_color", gson.toJson(foregroundColors));
+        intent.putExtra("Sizes", gson.toJson(fontSizes));
+        intent.putExtra("Images", gson.toJson(imageList));
+        intent.putExtra("Is_pinned", isPinned);
+        setResult(RESULT_OK, intent);
+        finish();
+    }
+    @Override
+    public void onBackPressed() {
+        saveData();
     }
 }

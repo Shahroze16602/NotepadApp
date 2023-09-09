@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.Paint;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -59,7 +58,6 @@ public class CheckListAdapter extends RecyclerView.Adapter<CheckListAdapter.Chec
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
                 if (!currentItem.getText().equals(charSequence.toString())) {
                     currentItem.setText(charSequence.toString());
-                    Log.d("Change", "onTextChanged: " + charSequence);
                 }
             }
 

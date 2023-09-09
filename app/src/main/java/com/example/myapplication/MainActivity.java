@@ -3,12 +3,10 @@ package com.example.myapplication;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.appcompat.widget.SearchView;
@@ -46,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
 //        binding.rvNotes.setLayoutManager(new LinearLayoutManager(this));
 
         binding.rvNotes.setHasFixedSize(true);
-        adapter = new NotesAdapter(this, (adapterView, view, i, l) -> {
+        adapter = new NotesAdapter(this, this, (adapterView, view, i, l) -> {
             NoteModel noteModel = Objects.requireNonNull(noteViewModel.noteList.getValue()).get(i);
             Intent intent = new Intent(MainActivity.this, AddNoteActivity.class);
             intent.putExtra("Id", noteModel.getId());
@@ -151,5 +149,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         binding.searchView.setQuery("",false);
+        adapter.notifyDataSetChanged();
     }
 }

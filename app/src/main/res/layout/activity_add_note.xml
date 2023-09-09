@@ -19,47 +19,68 @@
             android:layout_alignParentTop="true" />
 
     </com.google.android.material.appbar.AppBarLayout>
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_checkList"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="10dp"
-        android:visibility="gone"
-        android:layout_below="@id/edt_title"
-        android:layout_above="@id/bottom_layout"/>
-    <EditText
-        android:id="@+id/edt_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/toolbar_layout"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginBottom="10dp"
-        android:background="@android:color/transparent"
-        android:hint="Title"
-        android:inputType="textCapSentences"
-        android:maxLines="1"
-        android:textSize="20sp"
-        android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/edt_note"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_above="@id/bottom_layout"
-        android:layout_below="@+id/rv_checkList"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginBottom="10dp"
-        android:autoLink="all"
-        android:background="@android:color/transparent"
-        android:elegantTextHeight="true"
-        android:gravity="top|start"
-        android:hint="@string/note_something_down"
-        android:textSize="16dp"
-        android:clickable="true"/>
+        android:layout_below="@id/toolbar_layout">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_imageList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:visibility="visible"
+                android:overScrollMode="never"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_checkList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/edt_title"
+                android:padding="10dp"
+                android:visibility="gone"
+                android:overScrollMode="never"/>
+
+            <EditText
+                android:id="@+id/edt_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/rv_imageList"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginBottom="10dp"
+                android:background="@android:color/transparent"
+                android:hint="Title"
+                android:inputType="textCapSentences"
+                android:maxLines="1"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/edt_note"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@+id/rv_checkList"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginBottom="10dp"
+                android:autoLink="all"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:elegantTextHeight="true"
+                android:gravity="top|start"
+                android:hint="@string/note_something_down"
+                android:textSize="16dp" />
+        </RelativeLayout>
+    </ScrollView>
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_add"
@@ -138,6 +159,7 @@
                 android:textAlignment="center"
                 android:textSize="11sp" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/btn_share"
             android:layout_width="wrap_content"
